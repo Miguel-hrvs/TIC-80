@@ -16163,13 +16163,13 @@ static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority 
         {
             if (priority == ma_thread_priority_idle) {
             #ifdef SCHED_IDLE
-                if (pthread_attr_setschedpolicy(&attr, SCHED_IDLE) == 0) {
+                if (pthread_attr_setschedparam(&attr, SCHED_IDLE) == 0) {
                     scheduler = SCHED_IDLE;
                 }
             #endif
             } else if (priority == ma_thread_priority_realtime) {
             #ifdef SCHED_FIFO
-                if (pthread_attr_setschedpolicy(&attr, SCHED_FIFO) == 0) {
+                if (pthread_attr_setschedparam(&attr, SCHED_FIFO) == 0) {
                     scheduler = SCHED_FIFO;
                 }
             #endif
@@ -16186,8 +16186,8 @@ static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority 
         }
 
         if (scheduler != -1) {
-            int priorityMin = sched_get_priority_min(scheduler);
-            int priorityMax = sched_get_priority_max(scheduler);
+            int priorityMin = 0;
+            int priorityMax = 10;
             int priorityStep = (priorityMax - priorityMin) / 7;  /* 7 = number of priorities supported by miniaudio. */
 
             struct sched_param sched;
@@ -16219,7 +16219,7 @@ static ma_result ma_thread_create__posix(ma_thread* pThread, ma_thread_priority 
                 if (pthread_attr_setschedparam(&attr, &sched) == 0) {
                     #if !defined(MA_ANDROID) || (defined(__ANDROID_API__) && __ANDROID_API__ >= 28)
                     {
-                        pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+                        pthread_attr_setguardsize(&attr, PTHREAD_EXPLICIT_SCHED);
                     }
                     #endif
                 }
@@ -17876,7 +17876,7 @@ Dynamic Linking
 #ifdef MA_POSIX
     /* No need for dlfcn.h if we're not using runtime linking. */
     #ifndef MA_NO_RUNTIME_LINKING
-        #include <dlfcn.h>
+        #include "../../vendor/dlfcn/src/dlfcn.h"
     #endif
 #endif
 
@@ -18007,7 +18007,7 @@ DEVICE I/O
 
     /* No need for dlfcn.h if we're not using runtime linking. */
     #ifndef MA_NO_RUNTIME_LINKING
-        #include <dlfcn.h>
+        #include "../../vendor/dlfcn/src/dlfcn.h"
     #endif
 #endif
 
