@@ -114,8 +114,6 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
         .exit = onExit,
         .data = tic,
         .start = 0,
-        .counter = counter,
-        .freq = freq
     };
 
     tic_core_tick_start(mem);
