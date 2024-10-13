@@ -1726,10 +1726,6 @@ static void switchCrtMonitor(Studio* studio)
 #endif
 
 #if defined(BUILD_EDITORS)
-static u32 getTime()
-{
-    return tic_sys_counter_get() * 1000 / tic_sys_freq_get();
-}
 
 static void hideBattleTime(Studio* studio)
 {
