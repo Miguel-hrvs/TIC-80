@@ -39,7 +39,7 @@ typedef struct
     ErrorOutput error;
     ExitCallback exit;
 
-    u32 start;
+    clock_t start;
 
     void* data;
 } tic_tick_data;
