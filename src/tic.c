@@ -101,7 +101,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
 #endif
 }
 
-TIC80_API void tic80_tick(tic80* tic, tic80_input input, CounterCallback counter, FreqCallback freq)
+TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 {
     tic_mem* mem = (tic_mem*)tic;
 
