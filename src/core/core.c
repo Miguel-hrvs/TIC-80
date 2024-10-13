@@ -465,7 +465,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
                 tic->input.keyboard = 1;
             else tic->input.data = -1;  // default is all enabled
 
-            data->start = clock;
+            data->start = clock();
 
             if (config->useBinarySection)
                 code = tic->cart.binary.data;
