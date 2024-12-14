@@ -16,7 +16,7 @@
 	shallow = true
 [submodule "vendor/lua"]
 	path = vendor/lua
-	url = https://github.com/lua/lua.git
+	url = https://github.com/Miguel-hrvs/lua.git
 	shallow = true
 [submodule "vendor/squirrel"]
 	path = vendor/squirrel
