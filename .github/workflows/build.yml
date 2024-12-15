@@ -22,7 +22,7 @@ jobs:
         run: |
           cd vendor
           cd circle-stdlib
-          ./configure -r 2
+          ./configure -r 3
           make -j$(nproc)
           cd libs/circle/addon/vc4/sound/
           make -j$(nproc)
@@ -41,7 +41,7 @@ jobs:
           make -j$(nproc)
       - name: Pack
         run: |
-          cp build/baremetalpi/kernel7.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
       - name: Deploy
         uses: actions/upload-artifact@v4
