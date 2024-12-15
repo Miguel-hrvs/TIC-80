@@ -18,43 +18,40 @@ jobs:
         run: |
           apt-get update
           apt-get install --assume-yes build-essential ruby-full
-
-    - name: Prebuild
-      run: |
-        cd vendor/circle-stdlib
-        ./configure -r 3
-        make -j$(nproc)
-        cd libs/circle/addon/vc4/sound/
-        make -j$(nproc)
-        cd ../vchiq
-        make -j$(nproc)
-        cd ../../linux
-        make -j$(nproc)
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
-        make tic80studio -j$(nproc)
-        cd baremetalpi
-        make -j$(nproc)
-        cd ../../vendor/circle-stdlib/libs/circle/boot/
-        make -j$(nproc)
-
-    - name: Pack
-      run: |
-        cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
-        cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
-
-    - name: Deploy
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-baremetal'
-        path: |
-          vendor/circle-stdlib/libs/circle/boot/config.txt
-          vendor/circle-stdlib/libs/circle/boot/kernel.img
-          vendor/circle-stdlib/libs/circle/boot/bootcode.bin
-          vendor/circle-stdlib/libs/circle/boot/start.elf
-          vendor/circle-stdlib/libs/circle/boot/fixup.dat
-          vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+      - name: Prebuild
+        run: |
+          cd vendor
+          cd circle-stdlib
+          ./configure -r 3
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+      - name: Build
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
 
