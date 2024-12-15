@@ -22,7 +22,7 @@ jobs:
         run: |
           cd vendor
           cd circle-stdlib
-          ./configure -r 3
+          ./configure -r 2
           make -j$(nproc)
           cd libs/circle/addon/vc4/sound/
           make -j$(nproc)
