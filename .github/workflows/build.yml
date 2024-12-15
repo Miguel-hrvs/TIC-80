@@ -32,7 +32,6 @@ jobs:
           make -j$(nproc)
       - name: Build
         run: |
-          git apply build/baremetalpi/circle.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_ALL=ON ..
           make tic80studio -j$(nproc)
