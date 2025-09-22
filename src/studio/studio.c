@@ -1928,13 +1928,13 @@ static void processShortcuts(Studio* studio)
     }
     else if(ctrl)
     {
-        if(keyWasPressedOnce(studio, tic_key_q)) studio_exit(studio);
+        if(keyWasPressed(studio, tic_key_q)) studio_exit(studio);
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
         else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
         else if(enterWasPressedOnce(studio)) runGame(studio);
         else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio);
-        else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
+        else if(keyWasPressed(studio, tic_key_s)) saveProject(studio);
 #endif
 
 #if defined(TIC80_PRO)
