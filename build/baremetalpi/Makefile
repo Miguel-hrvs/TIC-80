@@ -26,28 +26,14 @@ LIBS :=  \
     $(TIC80LIB)/libtic80studio.a \
     $(TIC80LIB)/libtic80core.a \
     $(TIC80LIB)/libgiflib.a \
-    $(TIC80LIB)/liblpeg.a \
     $(TIC80LIB)/libluaapi.a \
     $(TIC80LIB)/liblua.a \
-    $(TIC80LIB)/libmoon.a \
-    $(TIC80LIB)/libfennel.a \
     $(TIC80LIB)/libzip.a \
     $(TIC80LIB)/libblipbuf.a \
-    $(TIC80LIB)/libsquirrel.a \
-    $(TIC80LIB)/libpython.a \
-    $(TIC80LIB)/libpocketpy.a \
-    $(TIC80LIB)/libscheme.a \
-    $(TIC80LIB)/libwren.a \
-    $(TIC80LIB)/libwasm.a \
-    $(TIC80LIB)/libjanet.a \
     $(TIC80LIB)/libargparse.a \
     $(TIC80LIB)/libwave_writer.a \
-    $(TIC80LIB)/libjs.a \
-    $(TIC80LIB)/libquickjs.a \
     $(TIC80LIB)/libzlib.a \
     $(TIC80LIB)/libpng.a \
-    $(TIC80LIB)/libruby.a \
-    $(MRUBYDIR)/build/target/lib/libmruby.a \
     $(NEWLIBDIR)/lib/libc.a \
     $(NEWLIBDIR)/lib/libcirclenewlib.a \
     $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
