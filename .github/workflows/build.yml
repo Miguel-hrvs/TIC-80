@@ -68,7 +68,7 @@ jobs:
             vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
 
   # === Raspberry PI 2 Bare Metal ===
-  rpi-baremetal:
+  rpi2-baremetal:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
 
@@ -129,7 +129,7 @@ jobs:
             vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
 
   # === Raspberry PI 3 Bare Metal ===
-  rpi-baremetal:
+  rpi3-baremetal:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
 
@@ -257,7 +257,7 @@ jobs:
             vendor/circle-stdlib/libs/circle/boot/start4.elf
 
   # === Raspberry PI 5 Bare Metal ===
-  rpi4-baremetal:
+  rpi5-baremetal:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
 
