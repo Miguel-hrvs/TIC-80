@@ -7,7 +7,128 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  # === Raspberry PI 1-4 Bare Metal ===
+  # === Raspberry PI 1 Bare Metal ===
+  rpi-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Host toolchain
+        run: |
+          apt-get update
+          apt-get install --assume-yes build-essential ruby-full
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 1
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_LUA=ON -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_WASM=OFF -DBUILD_WITH_MOON=OFF -DBUILD_WITH_FENNEL=OFF -DBUILD_WITH_JANET=OFF -DBUILD_WITH_WREN=OFF -DBUILD_WITH_RUBY=OFF -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_SQUIRREL=OFF -DBUILD_WITH_JS=OFF ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 2 Bare Metal ===
+  rpi-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Host toolchain
+        run: |
+          apt-get update
+          apt-get install --assume-yes build-essential ruby-full
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 2
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake -DBUILD_WITH_LUA=ON -DBUILD_WITH_PYTHON=OFF -DBUILD_WITH_WASM=OFF -DBUILD_WITH_MOON=OFF -DBUILD_WITH_FENNEL=OFF -DBUILD_WITH_JANET=OFF -DBUILD_WITH_WREN=OFF -DBUILD_WITH_RUBY=OFF -DBUILD_WITH_SCHEME=OFF -DBUILD_WITH_SQUIRREL=OFF -DBUILD_WITH_JS=OFF ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi2-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+  # === Raspberry PI 3 Bare Metal ===
   rpi-baremetal:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
@@ -58,7 +179,7 @@ jobs:
       - name: Deploy
         uses: actions/upload-artifact@v4
         with:
-          name: "tic80-rpi-baremetal"
+          name: "tic80-rpi3-baremetal"
           path: |
             vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
             vendor/circle-stdlib/libs/circle/boot/config.txt
@@ -119,12 +240,14 @@ jobs:
       - name: Deploy
         uses: actions/upload-artifact@v4
         with:
-          name: "tic80-rpi4-baremetal"
+          name: "tic80-rpi4-5-baremetal"
           path: |
             vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
             vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
             vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
-            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo
             vendor/circle-stdlib/libs/circle/boot/bootcode.bin
             vendor/circle-stdlib/libs/circle/boot/config.txt
             vendor/circle-stdlib/libs/circle/boot/COPYING.linux
