@@ -290,7 +290,7 @@ jobs:
 
       - name: Pack
         run: |
-          cp build/baremetalpi/kernel8.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
