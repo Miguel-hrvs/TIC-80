@@ -7,41 +7,9 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  rpi-baremetal-all:
+  rpi-baremetal-1-3:
     runs-on: ubuntu-24.04
     container: miguelhrvs/baremetalapi-tic80:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: "RPi 1"
-            num: 1
-            kernel: "kernel.img"
-            artdir: "artifacts/rpi1"
-            artifact_name: "tic80-rpi-baremetal"
-            cflags: "-DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-            cxxflags: "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-          - name: "RPi 2"
-            num: 2
-            kernel: "kernel7.img"
-            artdir: "artifacts/rpi2"
-            artifact_name: "tic80-rpi2-baremetal"
-            cflags: "-DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-            cxxflags: "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-          - name: "RPi 3"
-            num: 3
-            kernel: "kernel8-32.img"
-            artdir: "artifacts/rpi3"
-            artifact_name: "tic80-rpi3-baremetal"
-            cflags: "-DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-            cxxflags: "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-          - name: "RPi 4/5"
-            num: 4
-            kernel: "kernel7l.img"
-            artdir: "artifacts/rpi4"
-            artifact_name: "tic80-rpi4-5-baremetal"
-            cflags: "-DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
-            cxxflags: "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation"
 
     steps:
       - uses: actions/checkout@v4
@@ -49,87 +17,179 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      # ---------------------------------------------------------------
-      # Cache the compiled circle-stdlib tree per variant.
-      # Key includes the pinned commit so bumping the ref auto-invalidates.
-      # ---------------------------------------------------------------
-      - name: Cache circle-stdlib
-        id: cache-circle
-        uses: actions/cache@v4
-        with:
-          path: vendor/circle-stdlib
-          key: circle-stdlib-rpi${{ matrix.num }}-db053a32c165c1b22423a47ed6cb5bddc72b51f2
-
-      - name: Build circle-stdlib (cache miss only)
-        if: steps.cache-circle.outputs.cache-hit != 'true'
+      - name: Build all Raspberry Pi bare-metal targets
         shell: bash
         run: |
           set -euo pipefail
-          ( cd vendor && git clone --recursive https://github.com/smuehlst/circle-stdlib )
-          ( cd vendor/circle-stdlib
-            git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
-            git submodule update --recursive
-            ./configure -r "${{ matrix.num }}"
-            make -j"$(nproc)"
-            ( cd libs/circle/addon/vc4/sound/ && make -j"$(nproc)" )
-            ( cd libs/circle/addon/vc4/vchiq/ && make -j"$(nproc)" )
-            ( cd libs/circle/addon/linux/      && make -j"$(nproc)" )
-            ( cd libs/circle/boot && make -j"$(nproc)" )
-          )
 
-      - name: Apply circle patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git apply build/baremetalpi/circle.patch
+          build_variant() {
+            local num="$1"          # 1 | 2 | 3
+            local cflags="$2"
+            local cxxflags="$3"
+            local kernel="$4"       # kernel.img | kernel7.img | kernel8-32.img
+            local artdir="$5"
 
-      - name: Build TIC-80 and bare-metal kernel
-        shell: bash
-        run: |
-          set -euo pipefail
-          ( cd build
-            cmake -DCMAKE_BUILD_TYPE=Release \
-                  -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
-                  -DCMAKE_C_FLAGS="${{ matrix.cflags }}" \
-                  -DCMAKE_CXX_FLAGS="${{ matrix.cxxflags }}" \
-                  ..
-            make tic80studio -j"$(nproc)"
-            ( cd baremetalpi && { make clean 2>/dev/null || true; } && make -j"$(nproc)" )
-          )
+            echo "=========================================="
+            echo "  Building Raspberry Pi ${num}"
+            echo "=========================================="
 
-      - name: Pack ${{ matrix.name }} artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "${{ matrix.artdir }}"
-          cp "build/baremetalpi/${{ matrix.kernel }}"     "${{ matrix.artdir }}/kernel.img"
-          cp build/baremetalpi/boot/config.txt            "${{ matrix.artdir }}/config.txt"
-          cp vendor/circle-stdlib/libs/circle/boot/bootcode.bin     "${{ matrix.artdir }}/"
-          cp vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom "${{ matrix.artdir }}/"
+            # ---------- Reset workspace from previous variant ----------
+            # Undo any previously applied patch (tracked file changes)
+            git checkout -- . 2>/dev/null || true
+            # Remove previous circle-stdlib clone
+            rm -rf vendor/circle-stdlib
+            # Force cmake/make to rebuild with new flags
+            rm -f  build/CMakeCache.txt build/baremetalpi/CMakeCache.txt
+            rm -rf build/CMakeFiles        build/baremetalpi/CMakeFiles
+            find build -name '*.o'   -delete 2>/dev/null || true
+            find build -name '*.a'   -delete 2>/dev/null || true
+            find build -name '*.img' -delete 2>/dev/null || true
 
-          case "${{ matrix.num }}" in
-            1|2|3)
-              cp vendor/circle-stdlib/libs/circle/boot/start.elf "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/fixup.dat "${{ matrix.artdir }}/"
-              ;;
-            4)
-              cp vendor/circle-stdlib/libs/circle/boot/start4.elf            "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/fixup4.dat            "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/COPYING.linux         "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb   "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb   "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb   "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb   "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo        "${{ matrix.artdir }}/"
-              ;;
-          esac
+            # ---------- Prebuild: circle-stdlib ----------
+            ( cd vendor && git clone --recursive https://github.com/smuehlst/circle-stdlib )
+            ( cd vendor/circle-stdlib
+              git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+              git submodule update --recursive
+              ./configure -r "$num"
+              make -j"$(nproc)"
+              ( cd libs/circle/addon/vc4/sound/ && make -j"$(nproc)" )
+              ( cd libs/circle/addon/vc4/vchiq/ && make -j"$(nproc)" )
+              ( cd libs/circle/addon/linux/      && make -j"$(nproc)" )
+            )
 
-          if [ "${{ matrix.num }}" = "2" ] || [ "${{ matrix.num }}" = "3" ]; then
-            cp vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb "${{ matrix.artdir }}/"
-          fi
+            # ---------- Apply patch AFTER circle-stdlib exists ----------
+            git apply build/baremetalpi/circle.patch
 
-      - name: Upload ${{ matrix.name }} artifact
+            # ---------- Build: TIC-80 + bare-metal kernel ----------
+            ( cd build
+              cmake -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                    -DCMAKE_C_FLAGS="$cflags" \
+                    -DCMAKE_CXX_FLAGS="$cxxflags" \
+                    ..
+              make tic80studio -j"$(nproc)"
+              ( cd baremetalpi && { make clean 2>/dev/null || true; } && make -j"$(nproc)" )
+            )
+
+            ( cd vendor/circle-stdlib/libs/circle/boot && make -j"$(nproc)" )
+
+            # ---------- Pack into per-variant artifact dir ----------
+            mkdir -p "$artdir"
+            cp "build/baremetalpi/${kernel}"     "$artdir/kernel.img"
+            cp build/baremetalpi/boot/config.txt "$artdir/config.txt"
+            cp vendor/circle-stdlib/libs/circle/boot/bootcode.bin      "$artdir/"
+            cp vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom  "$artdir/"
+
+            case "$num" in
+              1|2|3)
+                cp vendor/circle-stdlib/libs/circle/boot/start.elf "$artdir/"
+                cp vendor/circle-stdlib/libs/circle/boot/fixup.dat "$artdir/"
+                ;;
+            esac
+
+            if [ "$num" = "2" ] || [ "$num" = "3" ]; then
+              cp vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb "$artdir/"
+            fi
+          }
+
+          # === RPi 1 ===
+          build_variant 1 \
+            "-DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+            "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv6 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=vfp -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+            "kernel.img" "artifacts/rpi1"
+
+          # === RPi 2 ===
+          build_variant 2 \
+            "-DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+            "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+            "kernel7.img" "artifacts/rpi2"
+
+          # === RPi 3 ===
+          build_variant 3 \
+            "-DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+            "-DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a53 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+            "kernel8-32.img" "artifacts/rpi3"
+
+      - name: Upload RPi 1 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artdir }}/*
+          name: "tic80-rpi-baremetal"
+          path: artifacts/rpi1/*
+
+      - name: Upload RPi 2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi2-baremetal"
+          path: artifacts/rpi2/*
+
+      - name: Upload RPi 3 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi3-baremetal"
+          path: artifacts/rpi3/*
+
+  # === Raspberry PI 4-5 Bare Metal ===
+  rpi4-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80:latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 4
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -std=c99 -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv8-a -D AARCH=32 -mtune=cortex-a72 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi4-5-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb
+            vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+            vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+            vendor/circle-stdlib/libs/circle/boot/start4.elf
