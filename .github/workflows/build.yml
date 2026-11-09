@@ -120,7 +120,6 @@ jobs:
               cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb   "${{ matrix.artdir }}/"
               cp vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-400.dtb   "${{ matrix.artdir }}/"
               cp vendor/circle-stdlib/libs/circle/boot/bcm2712-rpi-5-b.dtb   "${{ matrix.artdir }}/"
-              cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0-rpi-5-b.dtb "${{ matrix.artdir }}/"
               cp vendor/circle-stdlib/libs/circle/boot/bcm2712d0.dtbo        "${{ matrix.artdir }}/"
               ;;
           esac
