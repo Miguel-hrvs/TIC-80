@@ -46,9 +46,8 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+          
       - name: Apply Lua TIC-80 patches
-        shell: bash
         run: |
           set -euo pipefail
           git apply build/lua5.4.patch
@@ -175,7 +174,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+          
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
@@ -484,78 +483,6 @@ jobs:
           path: |
             stubs/*
 
-  # === Ubuntu-arm64 system GLES ===
-  #
-  # An ARM build against a system GLES (Batocera's data path is below). It
-  # followed the desktop onto sokol, whose GLES backend needs a GLES 3 context —
-  # where the SDL path this job built was a GLES 2 one.
-
-  linux-arm64-gles:
-    runs-on: ubuntu-22.04-arm
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Apply Lua TIC-80 patches
-        run: |
-          set -euo pipefail
-          git apply build/lua5.4.patch
-
-      - name: Install Toolchain and Dependencies
-        run: |
-          sudo apt-get update
-          # The GLES pair is stubbed below and the X11 trio and ALSA are what
-          # sokol_app and sokol_audio link against, as in the shipping job.
-          sudo apt-get install -y gcc g++ xz-utils wget python3 rake pkg-config binutils libgles2-mesa-dev libegl1-mesa-dev libx11-dev libxi-dev libxcursor-dev libasound2-dev
-
-      - name: Generate Stubs
-        run: |
-          for lib in /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libEGL.so.1; do \
-              outname=$(basename $lib | sed 's/-2.0//; s/\.so\..*/.so/') && \
-              echo "Generating stubs for $outname from $lib" && \
-              nm -D $lib | grep " T " | awk '{print "void " $3 "(){}"}' > stubs.c && \
-              sudo rm -f /usr/lib/aarch64-linux-gnu/$outname && \
-              soname=$(basename $lib | sed 's/-2.0//') && \
-              sudo gcc -shared -Wl,-soname,$soname -o /usr/lib/aarch64-linux-gnu/$outname stubs.c; \
-          done
-
-      - name: Build
-        run: |
-          cd build/linux
-          cmake ../.. \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_PRO=OFF \
-            -DBUILD_WITH_ALL=ON \
-            -DCMAKE_C_FLAGS_RELEASE="-Ofast -flto" \
-            -DCMAKE_CXX_FLAGS_RELEASE="-Ofast -flto" \
-            -DUSE_GLES2=ON \
-            -DBUILD_EDITORS=OFF \
-            -DBUILD_SURF=OFF \
-            -DTIC_DATA_PATH="/userdata/roms/tic80/"
-          cmake --build . --target tic80 --config Release --parallel
-
-      - name: Pack
-        run: |
-          mkdir -p build/linux/share/applications
-          mkdir -p build/linux/share/mime/packages
-          mkdir -p build/linux/share/icons
-          cp build/linux/tic80.desktop build/linux/share/applications/
-          cp build/linux/tic80.xml build/linux/share/mime/packages/
-          cp build/linux/tic80.png build/linux/share/icons/
-
-      - name: Deploy
-        uses: actions/upload-artifact@v6
-        with:
-          name: "tic80-linux-arm64-gles"
-          path: |
-            build/linux/bin/tic80
-            build/linux/bin/*.so
-            build/linux/lib/*.so
-            build/linux/share/*
-
   # === Nintendo 3DS build ===
 
   nintendo-3ds:
@@ -630,8 +557,99 @@ jobs:
           name: "tic80-nintendo-switch"
           path: build/bin/tic80.nro
 
-  # === MacOS 15 / arm64 ===
-  macos-arm64:
+  # === SDL desktop builds: the fallback ===
+  #
+  # The layer the desktop shipped before the migration, kept compiling for one
+  # release cycle; the echo is the comparison in the log.
+
+  sdl-windows:
+    runs-on: windows-2022
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build build --config Release --parallel
+          echo "sdl build: $((SECONDS - start))s"
+          du -h build/bin/tic80.exe
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-windows-sdl"
+          path: |
+            build/bin/tic80.exe
+
+  sdl-linux:
+    runs-on: ubuntu-22.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          # What the SDL build and the studio itself need; the shipping jobs
+          # carry sokol's X11 link line instead.
+          sudo apt-get install -y libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev
+          command -v ninja >/dev/null || sudo apt-get install -y ninja-build
+          command -v ccache >/dev/null || sudo apt-get install -y ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
+          cmake --build build --parallel
+          echo "sdl build: $((SECONDS - start))s"
+          du -h build/bin/tic80
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-linux-sdl"
+          path: |
+            build/bin/tic80
+
+  sdl-macos:
     runs-on: macos-15
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
@@ -642,15 +660,262 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-
+          
       - name: Apply Lua TIC-80 patches
         run: |
           set -euo pipefail
           git apply build/lua5.4.patch
 
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
       - name: Install
         run: |
           brew uninstall --ignore-dependencies libidn2
-          # the generator the builds use; the image usually carries it already
           command -v ninja >/dev/null || brew install ninja
           command -v ccache >/dev/null || brew install ccache
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-
+
+      - name: Build
+        run: |
+          set -euo pipefail
+          start=$SECONDS
+          cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_BUILD_TYPE=Release -DBUILD_SDL=ON -DBUILD_SOKOL=OFF -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=ON
+          cmake --build build --parallel 3
+          echo "sdl build: $((SECONDS - start))s"
+          du -h build/bin/tic80
+
+      - uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-macos-sdl"
+          path: |
+            build/bin/tic80
+
+  # === Android (sokol) ===
+  android:
+    # 24.04, not -latest: setup-ruby has no 2.6.10 for 26.04 (#3107).
+    runs-on: ubuntu-24.04
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "build-tools;35.0.0 platforms;android-31 ndk;30.0.16248370"
+
+      - name: Install ccache
+        run: command -v ccache >/dev/null || { sudo apt-get update && sudo apt-get install -y ccache; }
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-${{ github.job }}-${{ runner.arch }}-${{ github.sha }}
+          restore-keys: ccache-${{ github.job }}-${{ runner.arch }}-
+
+      - name: Build
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          export ANDROID_NDK="$ANDROID_HOME/ndk/30.0.16248370"
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              export UNSIGNED=1
+              echo "fork pull request: no repository secrets, the APKs are unsigned"
+          else
+              : "${RELEASE_STORE_PASSWORD:?RELEASE_STORE_PASSWORD secret is not set}"
+              : "${RELEASE_KEY_PASSWORD:?RELEASE_KEY_PASSWORD secret is not set}"
+          fi
+
+          common=(-DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake"
+                  -DANDROID_ABI=arm64-v8a -DANDROID_PLATFORM=android-26
+                  -DCMAKE_BUILD_TYPE=Release
+                  -DBUILD_SOKOL=ON -DBUILD_SDL=OFF
+                  -DBUILD_WITH_ALL=ON -DBUILD_TOUCH_INPUT=ON
+                  -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+
+          cmake -S . -B build-android -G Ninja "${common[@]}"
+          cmake --build build-android --parallel
+          build/android-sokol/apk.sh build-android/bin/libtic80.so build/android-sokol/tic80.apk
+
+          cmake -S . -B build-android-surf -G Ninja "${common[@]}" -DBUILD_EDITORS=OFF -DBUILD_SURF=ON
+          cmake --build build-android-surf --parallel
+          build/android-sokol/apk.sh build-android-surf/bin/libtic80.so build/android-sokol/tic80-surf.apk com.nesbox.tic.surf
+
+      - name: Check what each APK carries
+        run: |
+          TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)
+
+          unzip -p build/android-sokol/tic80.apk lib/arm64-v8a/libtic80.so > editors.so
+          unzip -p build/android-sokol/tic80-surf.apk lib/arm64-v8a/libtic80.so > surf.so
+
+          grep -qa "SPRITE EDITOR" editors.so || {
+            echo "the APK has no editors — BUILD_EDITORS did not take" >&2
+            exit 1
+          }
+          grep -qa "You don't have any files" surf.so || {
+            echo "the browser-only APK has no browser — BUILD_EDITORS=OFF did not take" >&2
+            exit 1
+          }
+          grep -qa "SPRITE EDITOR" surf.so && {
+            echo "the browser-only APK carries the editors" >&2
+            exit 1
+          }
+
+          for apk in tic80 tic80-surf; do
+            unzip -l "build/android-sokol/$apk.apk" | grep -q "classes.dex" || {
+              echo "$apk carries no dex — the documents provider is missing" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICDocumentsProvider" || {
+              echo "$apk's dex is not the documents provider" >&2
+              exit 1
+            }
+            unzip -p "build/android-sokol/$apk.apk" classes.dex | grep -qa "TICActivity" || {
+              echo "$apk's dex has no activity — the .tic intents cannot work" >&2
+              exit 1
+            }
+            manifest=$("$TOOLS/aapt2" dump xmltree --file AndroidManifest.xml "build/android-sokol/$apk.apk")
+            echo "$manifest" | grep -q "hasCode(0x0101000c)=true" || {
+              echo "$apk's manifest has hasCode off — the provider cannot load" >&2
+              exit 1
+            }
+            case "$apk" in
+              tic80) authority=com.nesbox.tic.documents ;;
+              tic80-surf) authority=com.nesbox.tic.surf.documents ;;
+            esac
+            echo "$manifest" | grep -q "TICDocumentsProvider" || {
+              echo "$apk's manifest has no documents provider" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "com.nesbox.tic.TICActivity" || {
+              echo "$apk's manifest has no activity" >&2
+              exit 1
+            }
+            echo "$manifest" | grep -q "authorities(0x01010018)=\"$authority\"" || {
+              echo "$apk's provider authority is not $authority" >&2
+              exit 1
+            }
+            "$TOOLS/aapt2" dump badging "build/android-sokol/$apk.apk" | grep "^package:"
+          done
+
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "package: name='com.nesbox.tic'" || {
+            echo "the editors APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80-surf.apk | grep -q "package: name='com.nesbox.tic.surf'" || {
+            echo "the browser-only APK has the wrong package id" >&2
+            exit 1
+          }
+          "$TOOLS/aapt2" dump badging build/android-sokol/tic80.apk | grep -q "minSdkVersion:'26'" || {
+            echo "the APK's minSdk is not 26" >&2
+            exit 1
+          }
+
+      - name: Deploy
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android"
+          path: build/android-sokol/tic80.apk
+
+      - name: Deploy the browser-only APK
+        uses: actions/upload-artifact@v6
+        with:
+          if-no-files-found: error
+          name: "tic80-android-surf"
+          path: build/android-sokol/tic80-surf.apk
+
+  # === Raspberry PI 2 Bare Metal ===
+  rpi2-baremetal:
+    runs-on: ubuntu-24.04
+    container: miguelhrvs/baremetalapi-tic80@sha256:3338c759e9b75acda306c21918edb07a5413267a8fa5c9eaf4cc1a102488f93a
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Apply Lua TIC-80 patches
+        run: |
+          set -euo pipefail
+          git apply build/lua5.4.patch
+
+      - name: Prebuild
+        run: |
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout db053a32c165c1b22423a47ed6cb5bddc72b51f2
+          git submodule update --recursive
+          ./configure -r 2
+          make -j$(nproc)
+          cd libs/circle/addon/vc4/sound/
+          make -j$(nproc)
+          cd ../vchiq
+          make -j$(nproc)
+          cd ../../linux
+          make -j$(nproc)
+
+      - name: Build
+        run: |
+          git apply build/baremetalpi/circle.patch
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake \
+                -DCMAKE_C_FLAGS=" -DMINIZ_NO_TIME -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                -DCMAKE_CXX_FLAGS=" -DMINIZ_NO_TIME -DLUA_32BITS -march=armv7-a+neon-vfpv4 -D AARCH=32 -D __circle__ -D BAREMETALPI --specs=nosys.specs -O2 -mabi=aapcs -marm -mfloat-abi=hard -mfpu=neon-vfpv4 -D__DYNAMIC_REENT__ -Wno-error -Wno-unused-parameter -Wno-error=format -Wno-format -Wno-error=unused-function -Wno-error=sign-compare -Wno-error=stringop-truncation -w" \
+                ..
+          make tic80studio -j$(nproc)
+          cd baremetalpi
+          make -j$(nproc)
+          cd ../../vendor/circle-stdlib/libs/circle/boot/
+          make -j$(nproc)
+
+      - name: Pack
+        run: |
+          cp build/baremetalpi/kernel7.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+          cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+      - name: Deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: "tic80-rpi2-baremetal"
+          path: |
+            vendor/circle-stdlib/libs/circle/boot/bcm2710-rpi-zero-2-w.dtb
+            vendor/circle-stdlib/libs/circle/boot/config.txt
+            vendor/circle-stdlib/libs/circle/boot/kernel.img
+            vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+            vendor/circle-stdlib/libs/circle/boot/start.elf
+            vendor/circle-stdlib/libs/circle/boot/fixup.dat
+            vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
